@@ -3,38 +3,36 @@ import {
   Injectable,
   NotFoundException,
 } from "@nestjs/common";
-
-export interface Cars {
-  id?: number;
-  name: string;
-  model: string;
-}
+import type { Car } from "./interfaces/car.interface";
+import { Uuid } from "src/config/uuid.adapter";
+import { CreateCarDTO } from "./dto/create-car.dto";
+import { UpdateCarDTO } from "./dto/update-car.dto";
 
 @Injectable()
 export class CarsService {
-  private cars: Cars[] = [
+  private cars: Car[] = [
     {
-      id: 1,
+      id: Uuid(),
       name: "Toyota",
       model: "Corolla",
     },
     {
-      id: 2,
+      id: Uuid(),
       name: "Honda",
       model: "Civic",
     },
     {
-      id: 3,
+      id: Uuid(),
       name: "Chevrolet",
       model: "Cruze",
     },
   ];
 
-  public findAll(): Cars[] {
+  public findAll(): Car[] {
     return this.cars;
   }
 
-  public findById(id: number): Cars | Error {
+  public findById(id: string) {
     const findCar = this.cars.find((car) => car.id === id);
 
     if (!findCar) throw new NotFoundException(`Car with id ${id} not found`);
@@ -42,7 +40,7 @@ export class CarsService {
     return findCar;
   }
 
-  public findByName(name: string): Cars | Error {
+  public findByName(name: string): Car | Error {
     const findCar = this.cars.find(
       (car) => car.name.toLowerCase() === name.toLowerCase()
     );
@@ -53,30 +51,38 @@ export class CarsService {
     return findCar;
   }
 
-  public create({ name, model }: Cars) {
-    if (!name && !model)
-      throw new BadRequestException(`Name and model are required`);
+  public create(createCarDto: CreateCarDTO): Car[] {
+    const { name, model } = createCarDto;
+    const sameNameAndModel = this.cars.find((car) => {
+      return car.name === name && car.model === model;
+    });
 
-    this.cars.push({ id: this.cars.length + 1, name, model });
+    if (sameNameAndModel) throw new BadRequestException(`Car already exists`);
+
+    this.cars.push({ id: Uuid(), name, model });
 
     return this.cars;
   }
 
-  public updateById(id: number, { name, model }: Cars): Cars | Error {
-    const findCar = this.cars.find((car) => car.id === id);
+  public updateById(id: string, updateCarDto: UpdateCarDTO): Car | Error {
+    let carDB = this.findById(id);
 
-    if (!findCar) throw new NotFoundException(`Car with id ${id} not found`);
+    if (updateCarDto.id && updateCarDto.id !== id)
+      throw new BadRequestException(`Car id is not valid inside body`);
 
-    findCar.name = name?.length > 0 ? name : findCar.name;
-    findCar.model = model?.length > 0 ? model : findCar.model;
+    this.cars = this.cars.map((car) => {
+      if (car.id === id) {
+        carDB = { ...carDB, ...updateCarDto, id };
+        return carDB;
+      }
+      return car;
+    });
 
-    return findCar;
+    return carDB;
   }
 
-  public deleteById(id: number): Cars[] | Error {
-    const findCar = this.cars.find((car) => car.id === id);
-
-    if (!findCar) throw new NotFoundException(`Car with id ${id} not found`);
+  public deleteById(id: string): Car[] | Error {
+    this.findById(id);
 
     return (this.cars = this.cars.filter((car) => car.id !== id));
   }

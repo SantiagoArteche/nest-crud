@@ -4,11 +4,15 @@ import {
   Delete,
   Get,
   Param,
-  ParseIntPipe,
+  ParseUUIDPipe,
   Post,
   Put,
+  UsePipes,
+  ValidationPipe,
 } from "@nestjs/common";
-import { Cars, CarsService } from "./cars.service";
+import { CarsService } from "./cars.service";
+import { CreateCarDTO } from "./dto/create-car.dto";
+import { UpdateCarDTO } from "./dto/update-car.dto";
 
 @Controller("cars")
 export class CarsController {
@@ -20,7 +24,7 @@ export class CarsController {
   }
 
   @Get("/id/:id")
-  public getCarById(@Param("id", ParseIntPipe) id: number) {
+  public getCarById(@Param("id", ParseUUIDPipe) id: string) {
     return this.carsService.findById(id);
   }
 
@@ -30,20 +34,21 @@ export class CarsController {
   }
 
   @Post()
-  public createCart(@Body() { name, model }: Cars) {
-    return this.carsService.create({ name, model });
+  @UsePipes(new ValidationPipe())
+  public createCart(@Body() createCarDto: CreateCarDTO) {
+    return this.carsService.create(createCarDto);
   }
 
   @Put("/id/:id")
   public updateCarById(
-    @Param("id", ParseIntPipe) id: number,
-    @Body() { name, model }: Cars
+    @Param("id", ParseUUIDPipe) id: string,
+    @Body() updateCarDto: UpdateCarDTO
   ) {
-    return this.carsService.updateById(id, { name, model });
+    return this.carsService.updateById(id, updateCarDto);
   }
 
   @Delete("/id/:id")
-  public deleteCarById(@Param("id", ParseIntPipe) id: number) {
+  public deleteCarById(@Param("id", ParseUUIDPipe) id: string) {
     return this.carsService.deleteById(id);
   }
 }
